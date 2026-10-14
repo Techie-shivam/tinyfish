@@ -1,5 +1,8 @@
+// Empty in local dev (Vite proxies /api); set VITE_API_URL to the Render URL in production.
+const BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
 async function request(path, options) {
-  const res = await fetch(path, options);
+  const res = await fetch(BASE + path, options);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const detail = Array.isArray(body.detail) ? "Enter a full URL, like https://example.com" : body.detail;
@@ -21,7 +24,7 @@ export async function getAudit(id) {
   return (await request(`/api/audits/${id}`)).json();
 }
 
-export const markdownUrl = (id) => `/api/audits/${id}/report.md`;
+export const markdownUrl = (id) => `${BASE}/api/audits/${id}/report.md`;
 
 export async function verifyFixes(id) {
   return (await request(`/api/audits/${id}/verify`, { method: "POST" })).json();

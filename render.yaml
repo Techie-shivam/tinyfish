@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: readability-auditor-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: starter        # Chromium needs more than the 512 MB free tier
+    healthCheckPath: /health
+    envVars:
+      - key: TINYFISH_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

@@ -6,7 +6,8 @@ from app.core.config import get_settings
 
 app = FastAPI(title="AI-Readability & Visibility Auditor")
 app.add_middleware(
-    CORSMiddleware, allow_origins=get_settings().cors_origins, allow_methods=["*"], allow_headers=["*"],
+    CORSMiddleware, allow_origins=get_settings().cors_origins, allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_methods=["*"], allow_headers=["*"],
 )
 app.include_router(router)
 

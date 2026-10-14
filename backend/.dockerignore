@@ -1,0 +1,10 @@
+Lib/
+Scripts/
+Include/
+share/
+pyvenv.cfg
+.env
+.env.*
+tests/
+__pycache__/
+.pytest_cache/
