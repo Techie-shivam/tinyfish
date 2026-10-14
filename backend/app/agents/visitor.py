@@ -35,29 +35,46 @@ _JS_COLLECT = r"""() => {
 }"""
 
 
-def render(url: str) -> RenderState:
+def _capture(pw, url: str, remote: bool) -> dict:
+    """Load the page in a TinyFish remote browser (remote=True) or local headless Chromium."""
+    if remote:
+        browser = pw.chromium.connect_over_cdp(tinyfish.open_browser_session(url))
+        ctx = browser.contexts[0] if browser.contexts else browser.new_context()
+    else:
+        browser = pw.chromium.launch(headless=True)
+        ctx = browser.new_context(viewport={"width": 1366, "height": 900})
     try:
-        with sync_playwright() as pw:
+        page = ctx.pages[0] if ctx.pages else ctx.new_page()
+        page.goto(url, wait_until="domcontentloaded", timeout=45000)
+        try:
+            page.wait_for_load_state("networkidle", timeout=8000)  # busy sites never go idle; that is fine
+        except Exception:  # noqa: BLE001
+            page.wait_for_timeout(2000)
+        before = page.inner_text("body")
+        for el in page.query_selector_all(_EXPANDERS)[:25]:
             try:
-                browser = pw.chromium.connect_over_cdp(tinyfish.open_browser_session(url))
-                ctx = browser.contexts[0] if browser.contexts else browser.new_context()
-            except Exception:  # noqa: BLE001 - fall back to local headless Chromium
-                browser = pw.chromium.launch(headless=True)
-                ctx = browser.new_context()
-            page = ctx.pages[0] if ctx.pages else ctx.new_page()
-            page.goto(url, wait_until="networkidle", timeout=45000)
-            before = page.inner_text("body")
-            for el in page.query_selector_all(_EXPANDERS)[:25]:
-                try:
-                    el.click(timeout=800)
-                except Exception:  # noqa: BLE001 - non-clickable elements are fine to skip
-                    pass
-            page.wait_for_timeout(500)
-            after = page.inner_text("body")
-            info = page.evaluate(_JS_COLLECT)
-            browser.close()
-    except Exception as exc:  # noqa: BLE001
-        return RenderState(error=f"Render failed: {exc}")
+                el.click(timeout=800)
+            except Exception:  # noqa: BLE001 - non-clickable elements are fine to skip
+                pass
+        page.wait_for_timeout(500)
+        return {"before": before, "after": page.inner_text("body"), "info": page.evaluate(_JS_COLLECT)}
+    finally:
+        browser.close()
+
+
+def render(url: str) -> RenderState:
+    errors: list[str] = []
+    cap = None
+    with sync_playwright() as pw:
+        for remote in (True, False):  # remote proxies can fail on some sites; retry locally
+            try:
+                cap = _capture(pw, url, remote)
+                break
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"{'remote' if remote else 'local'}: {str(exc).splitlines()[0]}")
+    if cap is None:
+        return RenderState(error="Render failed (" + "; ".join(errors) + ")")
+    before, after, info = cap["before"], cap["after"], cap["info"]
     seen = {normalize(ln) for ln in lines(before)}
     extra = [ln for ln in lines(after) if normalize(ln) not in seen]
     return RenderState(text=before, expanded_text="\n".join(extra), images_without_alt=info["noalt"],
@@ -66,3 +83,5 @@ def render(url: str) -> RenderState:
 
 def run(state: AuditState) -> None:
     state.render = render(state.url)
+    if state.render.error:
+        raise RuntimeError(state.render.error)

@@ -6,7 +6,8 @@ from app.services.text import same_site
 
 SYSTEM = (
     "You extract the concrete questions a buyer or visitor would want answered, which the given page "
-    "text answers (price, availability, specs, hours, location, policies, comparisons...)."
+    "text answers (price, availability, sizes, specs, delivery, returns, hours, location, comparisons...). "
+    "Ignore legal boilerplate, cookie/consent notices, SMS or email sign-up terms and trivia."
 )
 
 
@@ -59,7 +60,6 @@ def run(state: AuditState, rival_pages: dict[str, str]) -> list[tuple[str, str, 
             if q.lower() not in seen:
                 seen.add(q.lower())
                 questions.append(Question(q=q, source_url=url))
-    if not questions:  # no rivals or LLM unavailable: use a generic buyer checklist instead
-        questions = [Question(q=q, source_url="Generic buyer checklist") for q in GENERIC_QUESTIONS]
-    state.questions = questions[: cfg.max_questions]
+    generic = [Question(q=q, source_url="Generic buyer checklist") for q in GENERIC_QUESTIONS[:5]]
+    state.questions = (questions[: cfg.max_questions - len(generic)] + generic)[: cfg.max_questions]
     return rivals
