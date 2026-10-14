@@ -23,6 +23,8 @@ class RenderState(BaseModel):
     text: str = ""  # visible text after load
     expanded_text: str = ""  # extra text revealed by opening tabs/accordions
     images_without_alt: int = 0
+    elements: list[dict] = []  # raw table/tab/accordion/image elements found in the DOM
+    hidden: list[dict] = []  # raw hidden or off-screen text blocks
     error: str = ""
 
 
@@ -68,6 +70,49 @@ class RivalCheck(BaseModel):
     error: str = ""
 
 
+class ElementCheck(BaseModel):
+    kind: str  # table | tab | accordion | image
+    text: str
+    survived: bool
+
+
+class HiddenFinding(BaseModel):
+    text: str
+    reason: str
+    injection: bool = False
+
+
+class CrawlState(BaseModel):
+    robots_found: bool = False
+    sitemap_found: bool = False
+    llms_found: bool = False
+    bots: dict[str, bool] = {}  # AI crawler -> allowed to fetch the page
+    notes: list[str] = []
+
+
+class StructuredState(BaseModel):
+    json_ld_types: list[str] = []
+    open_graph: list[str] = []
+    has_description: bool = False
+    missing: list[str] = []
+    snippet: str = ""
+
+
+class BenchRow(BaseModel):
+    feature: str
+    you: bool
+    rivals_with: int
+    rivals_total: int
+
+
+class Verification(BaseModel):
+    closed: list[str] = []
+    still_open: list[str] = []
+    new: list[str] = []
+    readability_before: float | None = None
+    readability_after: float | None = None
+
+
 class AuditState(BaseModel):
     url: str
     target_query: str = ""
@@ -79,5 +124,12 @@ class AuditState(BaseModel):
     answers: list[Answer] = []
     gaps: list[Gap] = []
     rivals: list[RivalCheck] = []
+    elements: list[ElementCheck] = []
+    hidden_findings: list[HiddenFinding] = []
+    crawl: CrawlState = Field(default_factory=CrawlState)
+    structured: StructuredState = Field(default_factory=StructuredState)
+    benchmark: list[BenchRow] = []
+    skeptic: dict[str, int] = {}
+    verifications: list[Verification] = []
     timings: dict[str, float] = {}
     llm_tokens: dict[str, int] = {"input": 0, "output": 0}

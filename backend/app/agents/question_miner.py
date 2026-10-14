@@ -30,6 +30,8 @@ def pick_rivals(state: AuditState, limit: int) -> list[tuple[str, str, int]]:
 
 
 def run(state: AuditState, rival_pages: dict[str, str]) -> list[tuple[str, str, int]]:
+    if not state.queries:
+        raise RuntimeError("No search queries available (Query Discovery failed)")
     cfg = get_settings()
     rivals = pick_rivals(state, cfg.max_rivals)
     for url, _, _ in rivals:

@@ -6,7 +6,9 @@ from fastapi.responses import PlainTextResponse
 from app.agents import report_writer
 from app.schemas.api import AgentProgress, AuditJob, AuditRequest
 from app.schemas.state import AuditState
+from app.schemas.state import Verification
 from app.services.pipeline import AGENTS, run_audit
+from app.services.verify import verify
 
 router = APIRouter(prefix="/api")
 JOBS: dict[str, AuditJob] = {}  # in-memory store; audits are live and never cached
@@ -42,3 +44,11 @@ def get_markdown(job_id: str) -> str:
     if not job.report:
         raise HTTPException(409, "Report not ready")
     return report_writer.to_markdown(job.state, job.report)
+
+
+@router.post("/audits/{job_id}/verify", response_model=Verification)
+def verify_fixes(job_id: str) -> Verification:
+    job = _get(job_id)
+    if job.status != "done":
+        raise HTTPException(409, "Audit not finished")
+    return verify(job.state)

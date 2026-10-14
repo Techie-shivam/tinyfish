@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { getAudit, startAudit } from "./api";
-import AuditForm from "./components/AuditForm.jsx";
-import Hero from "./components/Hero.jsx";
-import Progress from "./components/Progress.jsx";
-import Report from "./components/Report.jsx";
+import Evidence from "./components/Evidence.jsx";
+import Findings from "./components/Findings.jsx";
+import Overview from "./components/Overview.jsx";
+import TopBar from "./components/TopBar.jsx";
+
+const TABS = ["Overview", "Findings", "Evidence"];
 
 export default function App() {
   const [job, setJob] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState("Overview");
   const timer = useRef(null);
 
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -43,13 +46,13 @@ export default function App() {
   };
 
   return (
-    <main className="page">
-      <Hero />
-      <AuditForm onSubmit={submit} busy={busy} />
+    <div className="shell">
+      <TopBar tabs={TABS} tab={tab} onTab={setTab} job={job} />
       {error && <p className="error" role="alert">{error}</p>}
-      {job && <Progress job={job} />}
       {job?.status === "failed" && <p className="error" role="alert">{job.error || "The audit failed. Try again."}</p>}
-      {job?.report && <Report job={job} />}
-    </main>
+      {tab === "Overview" && <Overview job={job} busy={busy} onSubmit={submit} />}
+      {tab === "Findings" && <Findings job={job} />}
+      {tab === "Evidence" && <Evidence job={job} />}
+    </div>
   );
 }

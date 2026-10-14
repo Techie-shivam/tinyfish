@@ -10,9 +10,8 @@ SYSTEM = (
 )
 
 
-def _pass(state: AuditState, text: str) -> dict[str, str]:
+def ask(state: AuditState, text: str, qs: list[str]) -> dict[str, str]:
     """One interrogation pass; returns {question: verified_quote} for answered questions."""
-    qs = [q.q for q in state.questions]
     prompt = (
         f"Page text:\n{text}\n\nQuestions: {qs}\n"
         'Return {"answers": [{"q": str, "answered": bool, "quote": str}]}.'
@@ -27,12 +26,15 @@ def _pass(state: AuditState, text: str) -> dict[str, str]:
 
 
 def run(state: AuditState) -> None:
+    if not state.questions:
+        raise RuntimeError("No questions to ask (Question Miner found none)")
     cfg = get_settings()
-    if not state.questions or not state.fetch.text:
+    if not state.fetch.text:
         state.answers = [Answer(q=q.q, answered=False, source_url=q.source_url) for q in state.questions]
         return
     text = state.fetch.text[: cfg.page_text_limit]
-    passes = [_pass(state, text) for _ in range(cfg.interrogation_passes)]
+    qs = [q.q for q in state.questions]
+    passes = [ask(state, text, qs) for _ in range(cfg.interrogation_passes)]
     for q in state.questions:
         quotes = [p.get(q.q) for p in passes]
         ok = all(quotes)  # must hold across every pass to count as answered

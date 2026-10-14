@@ -7,8 +7,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     tinyfish_api_key: str = ""
-    anthropic_api_key: str = ""
-    llm_model: str = "claude-sonnet-5-5"
+    gemini_api_key: str = ""
+    llm_model: str = "gemini-flash-latest"
 
     max_rivals: int = 3
     max_queries: int = 12

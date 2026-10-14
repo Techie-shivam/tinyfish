@@ -29,6 +29,12 @@ class Report(BaseModel):
     cant_answer: list[Finding] = []
     visibility: list[Finding] = []
     visibility_note: str = ""
+    survival: list[Finding] = []
+    survival_score: float | None = None
+    hidden: list[Finding] = []
+    crawl: list[Finding] = []
+    structured: list[Finding] = []
+    benchmark: list[Finding] = []
     top_fixes: list[Finding] = []
     appendix: list[str] = []
 

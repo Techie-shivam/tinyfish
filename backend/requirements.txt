@@ -2,6 +2,6 @@ fastapi
 uvicorn[standard]
 pydantic-settings
 tinyfish
-anthropic
+google-genai
 playwright
 pytest

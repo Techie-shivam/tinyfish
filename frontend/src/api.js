@@ -22,3 +22,7 @@ export async function getAudit(id) {
 }
 
 export const markdownUrl = (id) => `/api/audits/${id}/report.md`;
+
+export async function verifyFixes(id) {
+  return (await request(`/api/audits/${id}/verify`, { method: "POST" })).json();
+}
