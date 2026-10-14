@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { EMPTY_JOB } from "../emptyJob";
 import AgentsStrip from "./cards/AgentsStrip.jsx";
 import AnswerCard from "./cards/AnswerCard.jsx";
 import BenchmarkCard from "./cards/BenchmarkCard.jsx";
 import CrawlCard from "./cards/CrawlCard.jsx";
 import FixesCard from "./cards/FixesCard.jsx";
+import RecentCard from "./cards/RecentCard.jsx";
 import StatTiles from "./cards/StatTiles.jsx";
 import SurvivalCard from "./cards/SurvivalCard.jsx";
 import VerifyCard from "./cards/VerifyCard.jsx";
@@ -28,41 +30,40 @@ function AuditForm({ onSubmit, busy }) {
 }
 
 export default function Overview({ job, busy, onSubmit }) {
-  const report = job?.report;
+  const ready = Boolean(job?.report);
+  const view = ready ? job : EMPTY_JOB;
+  const running = job && !ready && job.status !== "failed";
   return (
     <main className="dash">
       <section className="head">
         <div>
           <h1>AI Readability<br />Overview</h1>
-          <p className="muted">
-            {job ? job.state.url : "See what AI tools can and can’t read on any live page."}
-          </p>
+          <p className="muted">{job ? job.state.url : "See what AI tools can and can’t read on any live page."}</p>
+          {ready && <p className="verdict-line">{job.report.verdict}</p>}
         </div>
         <AuditForm onSubmit={onSubmit} busy={busy} />
       </section>
 
-      {job && !report && <AgentsStrip job={job} wide />}
+      {running && <AgentsStrip job={job} wide />}
 
-      {report && (
-        <div className="grid">
-          <div className="left">
-            <div className="row two-one">
-              <SurvivalCard job={job} />
-              <AnswerCard job={job} />
-            </div>
-            <div className="row one-one">
-              <BenchmarkCard job={job} />
-              <CrawlCard job={job} />
-            </div>
+      <div className={`grid ${ready ? "" : "dim"}`}>
+        <div className="left">
+          <div className="row two-one">
+            <SurvivalCard job={view} />
+            <AnswerCard job={view} />
           </div>
-          <div className="right">
-            <StatTiles job={job} />
-            <FixesCard job={job} />
-            <VerifyCard job={job} />
+          <div className="row one-one">
+            <BenchmarkCard job={view} />
+            <CrawlCard job={view} />
           </div>
         </div>
-      )}
-      {!job && <p className="empty card">Enter a URL above. The agents will render it, fetch it, and report what gets lost.</p>}
+        <div className="right">
+          <StatTiles job={view} />
+          <FixesCard job={view} />
+          {ready ? <VerifyCard job={job} /> : <RecentCard onSubmit={onSubmit} busy={busy} />}
+        </div>
+      </div>
+      {ready && <RecentCard onSubmit={onSubmit} busy={busy} />}
     </main>
   );
 }

@@ -5,8 +5,9 @@ export default function AnswerCard({ job }) {
     <section className="card answers">
       <header>
         <small className="muted">Answerability</small>
-        <h2>{answers.length ? `${ok} of ${answers.length} questions answered` : "No questions mined"}</h2>
+        <h2>{job.idle ? "Waiting for an audit" : answers.length ? `${ok} of ${answers.length} questions answered` : "No questions mined"}</h2>
       </header>
+      {job.idle && <p className="muted">Questions that outranking pages answer will be tested against your page.</p>}
       <ul>
         {answers.slice(0, 7).map((a, i) => (
           <li key={i} className={a.answered ? "ok" : "miss"} title={a.evidence_quote || `Asked of ${a.source_url}`}>

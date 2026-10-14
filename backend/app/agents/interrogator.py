@@ -18,7 +18,9 @@ def ask(state: AuditState, text: str, qs: list[str]) -> dict[str, str]:
     )
     haystack = normalize(text)
     out: dict[str, str] = {}
-    for a in llm.complete_json(SYSTEM, prompt, state.llm_tokens)["answers"]:
+    for a in llm.complete_json(SYSTEM, prompt, state.llm_tokens, key="answers"):
+        if not isinstance(a, dict) or "q" not in a:
+            continue
         quote = (a.get("quote") or "").strip()
         if a.get("answered") and quote and normalize(quote) in haystack:  # reject unverifiable quotes
             out[a["q"]] = quote
@@ -34,7 +36,11 @@ def run(state: AuditState) -> None:
         return
     text = state.fetch.text[: cfg.page_text_limit]
     qs = [q.q for q in state.questions]
-    passes = [ask(state, text, qs) for _ in range(cfg.interrogation_passes)]
+    try:
+        passes = [ask(state, text, qs) for _ in range(cfg.interrogation_passes)]
+    except Exception as exc:  # noqa: BLE001 - keep the audit going without answers
+        state.answers = [Answer(q=q.q, answered=False, source_url=q.source_url) for q in state.questions]
+        raise RuntimeError(f"LLM unavailable, answers skipped: {exc}") from exc
     for q in state.questions:
         quotes = [p.get(q.q) for p in passes]
         ok = all(quotes)  # must hold across every pass to count as answered

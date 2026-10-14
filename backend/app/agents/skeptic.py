@@ -16,7 +16,10 @@ def run(state: AuditState) -> None:
     state.gaps = kept
     unanswered = [a for a in state.answers if not a.answered]
     if unanswered and state.fetch.text:
-        retry = interrogator.ask(state, state.fetch.text, [a.q for a in unanswered])
+        try:
+            retry = interrogator.ask(state, state.fetch.text, [a.q for a in unanswered])
+        except Exception:  # noqa: BLE001 - skeptic is best effort
+            retry = {}
         for a in unanswered:  # answers that flip between runs are unstable, not real gaps
             if a.q in retry:
                 a.answered, a.evidence_quote = True, retry[a.q]

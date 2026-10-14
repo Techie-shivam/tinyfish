@@ -9,7 +9,7 @@ export default function FixesCard({ job }) {
         <small className="muted">Do this first</small>
         <h2>Top fixes</h2>
       </header>
-      {fixes.length === 0 && <p className="muted">No fixes needed.</p>}
+      {fixes.length === 0 && <p className="muted">{job.idle ? "Ranked fixes with ready-to-paste snippets appear here." : "No fixes needed."}</p>}
       <ul>
         {fixes.map((f, i) => (
           <li key={i} className={open === i ? "open" : ""}>

@@ -6,7 +6,7 @@ export default function BenchmarkCard({ job }) {
         <small className="muted">Competitor gap benchmark</small>
         <h2>What outranking pages include</h2>
       </header>
-      {rows.length === 0 && <p className="muted">No rival pages could be fetched.</p>}
+      {rows.length === 0 && <p className="muted">{job.idle ? "Compare your page with the pages that outrank it: pricing, FAQs, tables, proof." : "No rival pages could be fetched."}</p>}
       <ul>
         {rows.map((r) => {
           const share = r.rivals_total ? (r.rivals_with / r.rivals_total) * 100 : 0;

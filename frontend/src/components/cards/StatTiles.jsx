@@ -2,6 +2,19 @@ export default function StatTiles({ job }) {
   const { state, report } = job;
   const answered = state.answers.filter((a) => a.answered).length;
   const blockedBots = Object.values(state.crawl.bots).filter((ok) => !ok).length;
+  if (job.idle) {
+    return (
+      <div className="tiles">
+        {["Text AI can read", "Questions answered", "Facts hidden from AI", "AI bots blocked"].map((l) => (
+          <section className="card tile" key={l}>
+            <small className="muted">{l}</small>
+            <b>—</b>
+            <span className="pill idle">Waiting</span>
+          </section>
+        ))}
+      </div>
+    );
+  }
   const tiles = [
     { label: "Text AI can read", value: state.readability == null ? "n/a" : `${Math.round(state.readability * 100)}%`, tone: state.readability >= 0.9 ? "good" : "bad" },
     { label: "Questions answered", value: `${answered}/${state.answers.length}`, tone: answered === state.answers.length ? "good" : "bad" },

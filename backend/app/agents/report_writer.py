@@ -33,10 +33,15 @@ def _fixes(state: AuditState, items: dict[str, Finding]) -> list[Finding]:
     listing = "\n".join(f"{k}: {f.title} | {f.evidence[:150]}" for k, f in items.items())
     prompt = f'URL: {state.url}\nItems:\n{listing}\nReturn {{"fixes": [{{"ref": id, "title": str, "fix": str}}]}}.'
     out: list[Finding] = []
-    for fx in llm.complete_json(SYSTEM, prompt, state.llm_tokens)["fixes"][:5]:
-        src = items.get(fx.get("ref"))
-        if src and src.evidence:  # evidence rule
-            out.append(Finding(title=fx["title"], detail=src.detail, evidence=src.evidence, fix=fx["fix"]))
+    try:
+        for fx in llm.complete_json(SYSTEM, prompt, state.llm_tokens, key="fixes")[:5]:
+            src = items.get(fx.get("ref")) if isinstance(fx, dict) else None
+            if src and src.evidence and fx.get("title") and fx.get("fix"):  # evidence rule
+                out.append(Finding(title=fx["title"], detail=src.detail, evidence=src.evidence, fix=str(fx["fix"])))
+    except Exception:  # noqa: BLE001 - fall through to the deterministic fixes
+        pass
+    if not out:  # LLM unavailable: use the fixes the agents already attached to each finding
+        out = [f for f in items.values() if f.fix and f.evidence][:5]
     return out
 
 
@@ -92,8 +97,8 @@ def run(state: AuditState) -> Report:
         for b in state.benchmark if not b.you and b.rivals_with >= max(1, b.rivals_total // 2)
     ]
     answered = sum(a.answered for a in state.answers)
-    hidden = len([g for g in state.gaps if g.cause != "blocked"])
-    verdict = f"{hidden} facts exist on the page but are invisible to AI tools."
+    n_hidden = len([g for g in state.gaps if g.cause != "blocked"])
+    verdict = f"{n_hidden} facts exist on the page but are invisible to AI tools."
     if state.answers:
         verdict = f"AI tools can answer {answered} of {len(state.answers)} buyer questions about this page. " + verdict
     if state.fetch.blocked:

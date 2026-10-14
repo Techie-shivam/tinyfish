@@ -56,8 +56,9 @@ def run_audit(job: AuditJob) -> None:
         p.step("Benchmark", lambda: benchmark.run(state, rival_pages))
         p.step("Control Group", lambda: control_group.run(state, rivals, rival_pages))
         job.report = p.step("Report Writer", lambda: report_writer.run(state))  # type: ignore[assignment]
-        job.status = "done" if job.report else "failed"
-        if not job.report:
-            job.error = "Report could not be generated"
+        if not job.report:  # last resort: minimal report from whatever evidence exists
+            from app.schemas.api import Report
+            job.report = Report(verdict="Partial audit: some agents failed. Showing the evidence collected.")
+        job.status = "done"
     except Exception as exc:  # noqa: BLE001
         job.status, job.error = "failed", str(exc)

@@ -32,7 +32,8 @@ def _generate(model: str, system: str, prompt: str, max_tokens: int):
             time.sleep(2 ** attempt * 2)  # 2s, 4s, 8s
 
 
-def complete_json(system: str, prompt: str, usage: dict[str, int] | None = None, max_tokens: int = 4000):
+def complete_json(system: str, prompt: str, usage: dict[str, int] | None = None, max_tokens: int = 4000,
+                  key: str | None = None):
     """Ask Gemini for JSON only; returns parsed data. Retries busy errors, then tries a lighter model."""
     model = get_settings().llm_model
     try:
@@ -45,4 +46,9 @@ def complete_json(system: str, prompt: str, usage: dict[str, int] | None = None,
         usage["input"] += resp.usage_metadata.prompt_token_count or 0
         usage["output"] += resp.usage_metadata.candidates_token_count or 0
     raw = re.sub(r"^```(?:json)?|```$", "", (resp.text or "").strip(), flags=re.M).strip()
-    return json.loads(raw)
+    data = json.loads(raw)
+    if key is None:
+        return data
+    if isinstance(data, dict):  # {"queries": [...]} or any single list value
+        data = data.get(key) or next((v for v in data.values() if isinstance(v, list)), [])
+    return data if isinstance(data, list) else []

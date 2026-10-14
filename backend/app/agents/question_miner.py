@@ -10,6 +10,14 @@ SYSTEM = (
 )
 
 
+GENERIC_QUESTIONS = [
+    "What does it cost?", "Is it available or in stock?", "What are the delivery or shipping options?",
+    "What is the return or refund policy?", "How can I contact the seller or business?",
+    "What are the key features or specifications?", "Where is the business located?",
+    "What do customers say about it?",
+]
+
+
 def pick_rivals(state: AuditState, limit: int) -> list[tuple[str, str, int]]:
     """Returns (rival_url, query, position) for the best queries, skipping the user's own site."""
     chosen: list[QueryState] = []
@@ -30,8 +38,6 @@ def pick_rivals(state: AuditState, limit: int) -> list[tuple[str, str, int]]:
 
 
 def run(state: AuditState, rival_pages: dict[str, str]) -> list[tuple[str, str, int]]:
-    if not state.queries:
-        raise RuntimeError("No search queries available (Query Discovery failed)")
     cfg = get_settings()
     rivals = pick_rivals(state, cfg.max_rivals)
     for url, _, _ in rivals:
@@ -45,9 +51,15 @@ def run(state: AuditState, rival_pages: dict[str, str]) -> list[tuple[str, str, 
             f"Page text:\n{text[: cfg.page_text_limit // 3]}\n\n"
             'Return {"questions": [str]} with up to 6 questions this page answers.'
         )
-        for q in llm.complete_json(SYSTEM, prompt, state.llm_tokens)["questions"]:
+        try:
+            mined = [q for q in llm.complete_json(SYSTEM, prompt, state.llm_tokens, key="questions") if isinstance(q, str)]
+        except Exception:  # noqa: BLE001 - one rival failing must not stop the rest
+            mined = []
+        for q in mined:
             if q.lower() not in seen:
                 seen.add(q.lower())
                 questions.append(Question(q=q, source_url=url))
+    if not questions:  # no rivals or LLM unavailable: use a generic buyer checklist instead
+        questions = [Question(q=q, source_url="Generic buyer checklist") for q in GENERIC_QUESTIONS]
     state.questions = questions[: cfg.max_questions]
     return rivals
